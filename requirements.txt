@@ -1,0 +1,12 @@
+tokenizers == 0.9.4
+transformers == 4.2.0
+boto3 == 1.15.18
+gluonnlp == 0.10.0
+numpy == 1.16.6
+mxnet == 1.7.0.post2
+onnxruntime == 0.5.0
+sentencepiece == 0.1.96
+pandas == 1.1.0
+tqdm    
+scikit-learn
+flask
