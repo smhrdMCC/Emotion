@@ -1,0 +1,4 @@
+*.xlsx
+*.pt
+run_distilbert_classifier_example.ipynb.ipynb
+run_KoBERT_classifier_example.ipynb.ipynb
