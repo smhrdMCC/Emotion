@@ -25,7 +25,7 @@ else:
     print('No GPU available, using the CPU instead.')
 
 # Load model
-checkpoint=torch.load('./assets/saved_model.pt')
+checkpoint=torch.load('../assets/saved_model.pt')
 
 # Recognize metadata
 max_len = checkpoint['max_len']
@@ -127,34 +127,32 @@ def predict(predict_sentence):
                 print(logits)
                 sys.stdout.flush()
 
-# Load model
-model.load_state_dict(checkpoint['model_state_dict'])
+# Commmunicate with app
+def receive_data():
+    response = requests.get('http://url/data-endpoint')
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print('Error : Failed to receive data:', response.status_code)
+        return None
 
-# # Commmunicate with app
-# def receive_data():
-#     response = requests.get('http://url/data-endpoint')
-#     if response.status_code == 200:
-#         return response.json()
-#     else:
-#         print('Error : Failed to receive data:', response.status_code)
-#         return None
+def send_data(predicted_result):
+    data = {'predicted_result': predicted_result}
+    response = requests.post('http://url/result-endpoint', json=data)
+    if response.status_code == 200:
+        print('Data sent successful')
+    else:
+        print('Failed to send data:', response.status_code)
 
-# def send_data(predicted_result):
-#     data = {'predicted_result': predicted_result}
-#     response = requests.post('http://url/result-endpoint', json=data)
-#     if response.status_code == 200:
-#         print('Data sent successful')
-#     else:
-#         print('Failed to send data:', response.status_code)
+# Output
+while True:
+    recieved_data = receive_data()
+    if not recieved_data:
+        continue
+    sentence = recieved_data['sentence']
+    predicted_result = predict(sentence)
+    send_data(predicted_result)
 
-# # Output
-# while True:
-#     recieved_data = receive_data()
-#     if not recieved_data:
-#         continue
-#     sentence = recieved_data['sentence']
-#     predicted_result = predict(sentence)
-#     send_data_to_server(predicted_result)
 
 # temp output <= should be DELETE
 while True:
@@ -163,13 +161,3 @@ while True:
         break
     predict(sentence)
     print("\n")
-
-
-app = Flask(__name__)
-
-@app.route('/')
-def hello():
-    return 'Hello, World!'
-
-if __name__ == '__main__':
-    app.run(debug=True)
