@@ -18,10 +18,10 @@ from transformers import BertModel, DistilBertModel
 import os
 
 # 파라미터 조정
-max_len = 96
-batch_size = 64
+max_len = 10
+batch_size = 96
 warmup_ratio = 0.1
-num_epochs = 40
+num_epochs = 1
 max_grad_norm = 1
 log_interval = 200
 learning_rate =  4e-5
@@ -37,7 +37,7 @@ distilbert_model = DistilBertModel.from_pretrained('monologg/distilkobert')
 #BERT 모델, Vocabulary 불러오기
 bertmodel, vocab = get_pytorch_kobert_model()
 
-data_path="../assets/" #your own path
+data_path="./assets/" #your own path
 data_name=data_path+"sentiment_dialogues.csv"
 processed_data = pd.read_csv(data_name)
 
