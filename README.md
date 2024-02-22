@@ -1,3 +1,5 @@
+KoBERT - DistilBERT based python model
+
 -- Install --
 
     pip install -r requirements.txt
@@ -22,4 +24,3 @@
 2. DistilBERT가 BERT 대비 정확도는 3% 떨어지나 모델 크기가 2/3
 3. KoBERT의 Dependency 문제 해결을 위해 모듈들의 버전과 설치 순서를 제한함. Python 3.7.x 이외에서 사용을 권장하지 않음
 4. 일정 크기 이상의 파일은 Github에 업로드되지 않으므로 개별 설치
-5. 

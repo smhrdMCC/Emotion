@@ -15,32 +15,30 @@ from transformers import AdamW
 from transformers.optimization import get_cosine_schedule_with_warmup
 from transformers import BertModel, DistilBertModel
 
-import os
-
-# 파라미터 조정
-max_len = 10
-batch_size = 96
+# Parameter - can be modified
+max_len = 96
+batch_size = 64
 warmup_ratio = 0.1
-num_epochs = 1
+num_epochs = 20
 max_grad_norm = 1
 log_interval = 200
 learning_rate =  4e-5
 model_name = 'distilbert'
 
-# 저장 위치 조정
+# Location of the model
 ckpt_path="./assets/"
 ckpt_name=ckpt_path+"saved_model.pt"
 
+# Load the model and data
 bert_model = BertModel.from_pretrained('monologg/kobert')
 distilbert_model = DistilBertModel.from_pretrained('monologg/distilkobert')
-
-#BERT 모델, Vocabulary 불러오기
 bertmodel, vocab = get_pytorch_kobert_model()
 
 data_path="./assets/" #your own path
 data_name=data_path+"sentiment_dialogues.csv"
 processed_data = pd.read_csv(data_name)
 
+# Rename the column
 processed_data.loc[(processed_data['감정'] == "불안"), '감정'] = 0  #불안 => 0
 processed_data.loc[(processed_data['감정'] == "당황"), '감정'] = 1  #당황 => 1
 processed_data.loc[(processed_data['감정'] == "분노"), '감정'] = 2  #분노 => 2
@@ -54,10 +52,9 @@ for q, label in zip(processed_data['발화'], processed_data['감정'])  :
     data = []
     data.append(q)
     data.append(str(label))
-
     data_list.append(data)
 
-#train & test 데이터로 나누기
+# Split the data
 dataset_train, dataset_test = train_test_split(data_list, test_size=0.25)
 
 class BERTDataset(Dataset):
@@ -75,10 +72,9 @@ class BERTDataset(Dataset):
     def __len__(self):  
         return (len(self.labels))
 
-# 토큰화
+# tokenizer
 tokenizer = get_tokenizer()
 
-# tokenizer = KoBertTokenizer.from_pretrained('monologg/kobert')
 tok = nlp.data.BERTSPTokenizer(tokenizer, vocab, lower=False)
 data_train = BERTDataset(dataset_train, 0, 1, tok, max_len, True, False)
 data_test = BERTDataset(dataset_test, 0, 1, tok, max_len, True, False)
@@ -86,12 +82,12 @@ data_test = BERTDataset(dataset_test, 0, 1, tok, max_len, True, False)
 train_dataloader = torch.utils.data.DataLoader(data_train, batch_size=batch_size, num_workers=0)
 test_dataloader = torch.utils.data.DataLoader(data_test, batch_size=batch_size, num_workers=0)
 
-#kobert 학습모델 만들기
+# Create KoBERT model
 class BERTClassifier(nn.Module):
     def __init__(self,
                  bert,
                  hidden_size = 768,
-                 num_classes=7,   ##클래스 수 조정##
+                 num_classes=7,   # Modify (class number)
                  dr_rate=None,
                  params=None):
         super(BERTClassifier, self).__init__()
@@ -115,12 +111,15 @@ class BERTClassifier(nn.Module):
         attention_mask = self.gen_attention_mask(token_ids, valid_length)
         
         pooler = self.bert(input_ids = token_ids, attention_mask = attention_mask.float().to(token_ids.device))[0][:,0]
-        # distilbert는 pooler를 return하지 않음. 따라서 last_hidden_state로 부터 직접 pooler를 추출함
+        # Distilbert does not return the pooler, so extract pooler from last_hidden_state
+        # If this is BERT model, use this:
+        # pooler = self.bert(input_ids = token_ids, token_type_ids = segment_ids.long(), attention_mask = attention_mask.float().to(token_ids.device))[1]
 
         if self.dr_rate:
             out = self.dropout(pooler)
         return self.classifier(out)
-    
+
+# Use CUDA if available    
 if torch.cuda.is_available():    
     device = torch.device("cuda")
     print('There are %d GPU(s) available.' % torch.cuda.device_count())
@@ -129,10 +128,10 @@ else:
     device = torch.device("cpu")
     print('No GPU available, using the CPU instead.')
 
-#BERT 모델 불러오기
+# Load the DistilBERT model
 model = BERTClassifier(distilbert_model,  dr_rate=0.5).to(device)
 
-#optimizer와 schedule 설정
+# optimizer / scheduler
 no_decay = ['bias', 'LayerNorm.weight']
 optimizer_grouped_parameters = [
     {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
@@ -147,18 +146,16 @@ warmup_step = int(t_total * warmup_ratio)
 
 scheduler = get_cosine_schedule_with_warmup(optimizer, num_warmup_steps=warmup_step, num_training_steps=t_total)
 
-#정확도 측정을 위한 함수 정의
+# Calculate accuracy of the model
 def calc_accuracy(X,Y):
     max_vals, max_indices = torch.max(X, 1)
     train_acc = (max_indices == Y).sum().data.cpu().numpy()/max_indices.size()[0]
     return train_acc
-    
-# train_dataloader
-
+   
+# Create Model
 best_acc=0.0
 best_loss=99999999
 
-#kobert 모델 학습시키기
 for e in range(num_epochs):
     train_acc = 0.0
     test_acc = 0.0
@@ -166,7 +163,9 @@ for e in range(num_epochs):
     for batch_id, (token_ids, valid_length,segment_ids,label) in enumerate(train_dataloader):
         optimizer.zero_grad()
         token_ids = token_ids.long().to(device)
-        # segment_ids = segment_ids.long().to(device) ## DistillBERT는 token_type_ids(segment_ids)를 사용하지 않음.
+        # DistillBERT don't use token_type_ids(segment_ids)
+        # If it uses BERT model, use this:
+        # segment_ids = segment_ids.long().to(device) ## 
         valid_length= valid_length
         label = label.long().to(device)
         out = model(token_ids, valid_length)
@@ -183,6 +182,8 @@ for e in range(num_epochs):
     model.eval()
     for batch_id, (token_ids, valid_length,segment_ids,label) in enumerate(test_dataloader):
         token_ids = token_ids.long().to(device)
+        # DistillBERT don't use token_type_ids(segment_ids)
+        # If it uses BERT model, use this:
         # segment_ids = segment_ids.long().to(device)
         valid_length= valid_length
         label = label.long().to(device)
