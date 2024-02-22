@@ -102,7 +102,6 @@ def predict(predict_sentence):
     test_dataloader = torch.utils.data.DataLoader(another_test, batch_size=batch_size, num_workers=0)
 
     model.eval()
-    predictions = []
     with torch.no_grad():
         for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(test_dataloader):
             token_ids = token_ids.long().to(device)
@@ -116,8 +115,27 @@ def predict(predict_sentence):
             for i in out:
                 logits = i
                 logits = logits.detach().cpu().numpy()
-                predictions.append(logits)
-    return predictions
+
+                second_max_index = np.argpartition(logits, -2)[-2]
+                second_max_value = logits[second_max_index]
+
+                if np.argmax(logits) == 0:
+                    prediction = "불안"
+                elif np.argmax(logits) == 1:
+                    prediction = "당황"
+                elif np.argmax(logits) == 2:
+                    prediction = "분노"
+                elif np.argmax(logits) == 3:
+                    prediction = "슬픔"
+                elif np.argmax(logits) == 4:
+                    prediction = "중립"
+                elif np.argmax(logits) == 5 and (logits[5]/2) < second_max_value:
+                    prediction = "행복"
+                elif np.argmax(logits) == 5:
+                    prediction = "더 행복"
+                elif np.argmax(logits) == 6:
+                    prediction = "혐오"
+                return prediction
 
 # Send data
 @app.route('/predict', methods=['POST'])
