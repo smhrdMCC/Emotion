@@ -93,7 +93,7 @@ model = BERTClassifier(bertmodel, dr_rate=0.5).to(device)
 # Get tokenizer
 tokenizer = get_tokenizer()
 tok = nlp.data.BERTSPTokenizer(tokenizer, vocab, lower=False)
-
+logits=0
 def predict(predict_sentence):
     data = [predict_sentence, '0']
     dataset_another = [data]
@@ -112,6 +112,7 @@ def predict(predict_sentence):
 
             out = model(token_ids, valid_length, segment_ids)
 
+            test_eval=[]
             for i in out:
                 logits = i
                 logits = logits.detach().cpu().numpy()
@@ -120,22 +121,22 @@ def predict(predict_sentence):
                 second_max_value = logits[second_max_index]
 
                 if np.argmax(logits) == 0:
-                    prediction = "불안"
+                    test_eval.append("불안")
                 elif np.argmax(logits) == 1:
-                    prediction = "당황"
+                    test_eval.append("당황")
                 elif np.argmax(logits) == 2:
-                    prediction = "분노"
+                    test_eval.append("분노")
                 elif np.argmax(logits) == 3:
-                    prediction = "슬픔"
+                    test_eval.append("슬픔")
                 elif np.argmax(logits) == 4:
-                    prediction = "중립"
+                    test_eval.append("중립")
                 elif np.argmax(logits) == 5 and (logits[5]/2) < second_max_value:
-                    prediction = "행복"
+                    test_eval.append("행복")
                 elif np.argmax(logits) == 5:
-                    prediction = "더 행복"
+                    test_eval.append("더 행복")
                 elif np.argmax(logits) == 6:
-                    prediction = "혐오"
-                return prediction
+                    test_eval.append("혐오")
+                return test_eval[0]
 
 # Send data
 @app.route('/predict', methods=['POST'])

@@ -146,7 +146,7 @@ def predict(predict_sentence):
                 elif np.argmax(logits) == 6:
                     prediction = "혐오"
 
-                print(prediction)
+                print(logits)
                 # print(np.argmax(logits))
 
 # Load model
