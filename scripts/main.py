@@ -16,6 +16,11 @@ from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
+# Random(?) seeds
+seed_number = 52
+torch.manual_seed(seed_number)
+np.random.seed(seed_number)
+
 # GPU CUDA
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -112,53 +117,99 @@ def predict(predict_sentence):
 
             out = model(token_ids, valid_length, segment_ids)
 
-            test_eval=[]
-            for i in out:
-                logits = i
+            emotion_priority=[]
+            # logits = [불안, 당황, 분노, 슬픔, 중립, 행복, 혐오]
+            emotion_labels = {0: "불안",
+                              1: "당황",
+                              2: "분노",
+                              3: "슬픔",
+                              4: "중립",
+                              5: "기쁨",
+                              6: "혐오",
+                              7: "행복"}
+            for logits in out:
                 logits = logits.detach().cpu().numpy()
 
-                second_max_index = np.argpartition(logits, -2)[-2]
-                second_max_value = logits[second_max_index]
+                predicted_emotion_index = np.argmax(logits)
+                emotion_priority.append(emotion_labels[predicted_emotion_index])
 
-                if np.argmax(logits) == 0:
-                    test_eval.append("불안")
-                elif np.argmax(logits) == 1:
-                    test_eval.append("당황")
-                elif np.argmax(logits) == 2:
-                    test_eval.append("분노")
-                elif np.argmax(logits) == 3:
-                    test_eval.append("슬픔")
-                elif np.argmax(logits) == 4:
-                    test_eval.append("중립")
-                elif np.argmax(logits) == 5 and (logits[5]/2) < second_max_value:
-                    test_eval.append("행복")
-                elif np.argmax(logits) == 5:
-                    test_eval.append("더 행복")
-                elif np.argmax(logits) == 6:
-                    test_eval.append("혐오")
-                return test_eval[0]
+                second_max_index = np.argpartition(logits, -2)[-2]
+                emotion_priority.append(emotion_labels[second_max_index])
+
+                if ((logits[predicted_emotion_index]*2) > logits[second_max_index]) & (predicted_emotion_index==5):
+                    emotion_priority[0] = "행복"
+                # print (logits)
+        return emotion_priority[0]
 
 # Send data
-@app.route('/predict', methods=['POST'])
+@app.route('/sendBert', methods=['POST'])
 
 # If json data has received make json from data
 def predict_emotion():
-    request_data = request.get_json()
-    sentence = request_data['sentence']
+    recieved_data = request.get_json()
+    sentence = recieved_data
     predicted_result = predict(sentence)
-    return jsonify({'predicted_result': predicted_result})
+    # print(predicted_result)
+    return jsonify({'diaryContent':predicted_result})
 
-# Send json data
-def send_data(predicted_result):
-    data = {'predicted_result': predicted_result}
-    response = requests.post('http://10.0.2.2:8100/', json=data)
-    if response.status_code == 200:
-        print('Data sent successfully')
-    else:
-        print('Failed to send data:', response.status_code)
+    # If you want to whole infomation
+    # return jsonify({'created_at': recieved_data['created_at'],
+    #                 'emotion_classification': predicted_result,
+    #                 'user_email': recieved_data['user_email']})
+
+
+# # If you have to send json data
+# def send_data(predicted_result):
+#     data = {'predicted_result': predicted_result}
+#     response = requests.post('http://10.0.2.2:8100/', json=data)
+#     if response.status_code == 200:
+#         print('Data sent successfully')
+#     else:
+#         print('Failed to send data:', response.status_code)
+
+
+# mariadb code - if you have to...
+# import mariadb
+# import sys
+
+# # Save data to MariaDB
+# def save_to_database(predicted_result):
+#     try:
+#         # Connect to MariaDB
+#         conn = mariadb.connect(
+#             user="mcc1234",
+#             password="1234mcc",
+#             host="project-db-campus.smhrd.com",
+#             port=3308,
+#             database="tb_feedback"
+#         )
+#         cur = conn.cursor()
+#         cur.execute("INSERT INTO emotion_classification (result) VALUES (?)", (predicted_result,))
+#         conn.commit()
+#         print('Data saved to MariaDB successfully')
+        
+#     except mariadb.Error as e:
+#         print(f"Error connecting to MariaDB: {e}")
+#         sys.exit(1)
+        
+#     finally:
+#         # Close the database connection
+#         if conn:
+#             conn.close()
+
+# # Modify the send_data function to also save the predicted result to MariaDB
+# def send_data(predicted_result):
+#     # Send the predicted result back to the Flask app
+#     data = {'emotion_classification': predicted_result}
+#     response = requests.post('http://10.0.2.2:8100/', json=data)
+#     if response.status_code == 200:
+#         print('Data sent successfully to app')
+#     else:
+#         print('Failed to send data to app:', response.status_code)
+    
+#     # Save the predicted result to MariaDB
+#     save_to_database(predicted_result)
 
 # Define HOST
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-
-
+    app.run(host='0.0.0.0', port=8120)

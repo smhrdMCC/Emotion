@@ -117,7 +117,7 @@ def predict(predict_sentence):
                 logits = i
                 logits = logits.detach().cpu().numpy()
                 predictions.append(logits)
-    return predictions
+            return predictions
 
 # Send data
 @app.route('/predict', methods=['POST'])

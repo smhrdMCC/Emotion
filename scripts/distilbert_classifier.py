@@ -16,7 +16,7 @@ from transformers.optimization import get_cosine_schedule_with_warmup
 from transformers import BertModel, DistilBertModel
 
 # Parameter - can be modified
-max_len = 96
+max_len = 64
 batch_size = 64
 warmup_ratio = 0.1
 num_epochs = 20
@@ -26,7 +26,7 @@ learning_rate =  4e-5
 model_name = 'distilbert'
 
 # Location of the model
-ckpt_path="./assets/"
+ckpt_path="../assets/"
 ckpt_name=ckpt_path+"saved_model.pt"
 
 # Load the model and data
@@ -34,7 +34,7 @@ bert_model = BertModel.from_pretrained('monologg/kobert')
 distilbert_model = DistilBertModel.from_pretrained('monologg/distilkobert')
 bertmodel, vocab = get_pytorch_kobert_model()
 
-data_path="./assets/" #your own path
+data_path="../assets/" #your own path
 data_name=data_path+"sentiment_dialogues.csv"
 processed_data = pd.read_csv(data_name)
 
