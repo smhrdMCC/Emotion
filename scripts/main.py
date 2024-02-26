@@ -14,6 +14,10 @@ from transformers import DistilBertModel
 # Flask
 from flask import Flask, request, jsonify
 
+# # MariaDB
+# import mariadb
+# import sys
+
 app = Flask(__name__)
 
 # Random(?) seeds
@@ -149,7 +153,7 @@ def predict_emotion():
     recieved_data = request.get_json()
     sentence = recieved_data
     predicted_result = predict(sentence)
-    # print(predicted_result)
+    print(predicted_result)
     return jsonify({'diaryContent':predicted_result})
 
     # If you want to whole infomation
@@ -168,10 +172,7 @@ def predict_emotion():
 #         print('Failed to send data:', response.status_code)
 
 
-# mariadb code - if you have to...
-# import mariadb
-# import sys
-
+# # mariadb code - if you have to...
 # # Save data to MariaDB
 # def save_to_database(predicted_result):
 #     try:
