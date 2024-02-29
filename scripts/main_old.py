@@ -119,7 +119,7 @@ def predict(predict_sentence):
                 predictions.append(logits)
             return predictions
 
-# Send data
+# Set endpoint
 @app.route('/predict', methods=['POST'])
 
 # If json data has received make json from data

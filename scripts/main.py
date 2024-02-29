@@ -144,7 +144,7 @@ def predict(predict_sentence):
                 
         return emotion_priority[0]
 
-# Send data
+# Set endpoint
 @app.route('/sendBert', methods=['POST'])
 
 def predict_emotion():
