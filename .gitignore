@@ -1,3 +1,4 @@
 *.xlsx
 *.pt
+*.csv
 .cache

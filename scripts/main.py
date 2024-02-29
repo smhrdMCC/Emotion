@@ -118,7 +118,7 @@ def predict(predict_sentence):
 
             emotion_priority=[]
             
-            # Indexing
+            # Indexing as required
             emotion_labels = {0: "불안",
                             1: "당황",
                             2: "분노",
