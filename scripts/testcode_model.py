@@ -1,4 +1,3 @@
-import sys
 import torch
 from torch import nn
 from torch.utils.data import Dataset
@@ -10,10 +9,6 @@ from kobert.utils import get_tokenizer
 from kobert.pytorch_kobert import get_pytorch_kobert_model
 # DisstilBERT
 from transformers import DistilBertModel
-
-# About server
-import requests
-from flask import Flask
 
 # GPU CUDA
 if torch.cuda.is_available():    
@@ -123,9 +118,6 @@ def predict(predict_sentence):
                 logits=i
                 logits = logits.detach().cpu().numpy()
 
-                # logits = [불안, 당황, 분노, 슬픔, 중립, 행복, 혐오]
-                # print(logits)
-                # sys.stdout.flush()
                 second_max_index = np.argpartition(logits, -2)[-2]
                 second_max_value = logits[second_max_index]
 
@@ -147,11 +139,11 @@ def predict(predict_sentence):
                     prediction = "혐오"
 
                 print(logits)
-                # print(np.argmax(logits))
 
 # Load model
 model.load_state_dict(checkpoint['model_state_dict'])
 
+# Put The Data In!
 while True:
     sentence = input("input is : ")
     if sentence == "" :

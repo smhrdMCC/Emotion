@@ -1,4 +1,3 @@
-import requests
 import torch
 from torch import nn
 from torch.utils.data import Dataset
@@ -13,10 +12,6 @@ from transformers import DistilBertModel
 
 # Flask
 from flask import Flask, request, jsonify
-
-# # MariaDB
-# import mariadb
-# import sys
 
 app = Flask(__name__)
 
@@ -47,7 +42,7 @@ if checkpoint['model_name'] == "distilbert":
 # BERT class
 class BERTDataset(Dataset):
     def __init__(self, dataset, sent_idx, label_idx, bert_tokenizer, max_len,
-                 pad, pair):
+                pad, pair):
         transform = nlp.data.BERTSentenceTransform(
             bert_tokenizer, max_seq_length=max_len, pad=pad, pair=pair)
 
@@ -62,11 +57,11 @@ class BERTDataset(Dataset):
 
 class BERTClassifier(nn.Module):
     def __init__(self,
-                 bert,
-                 hidden_size=768,
-                 num_classes=7,  # Modify the number of the class
-                 dr_rate=None,
-                 params=None):
+                bert,
+                hidden_size=768,
+                num_classes=7,  # Modify the number of the class
+                dr_rate=None,
+                params=None):
         super(BERTClassifier, self).__init__()
         self.bert = bert
         self.dr_rate = dr_rate
@@ -122,94 +117,53 @@ def predict(predict_sentence):
             out = model(token_ids, valid_length, segment_ids)
 
             emotion_priority=[]
-            # logits = [불안, 당황, 분노, 슬픔, 중립, 행복, 혐오]
+            
+            # Indexing
             emotion_labels = {0: "불안",
-                              1: "당황",
-                              2: "분노",
-                              3: "슬픔",
-                              4: "중립",
-                              5: "기쁨",
-                              6: "혐오",
-                              7: "행복"}
+                            1: "당황",
+                            2: "분노",
+                            3: "슬픔",
+                            4: "중립",
+                            5: "기쁨",
+                            6: "혐오",
+                            7: "행복"}
             for logits in out:
                 logits = logits.detach().cpu().numpy()
-
+                
+                # Append Maximum value
                 predicted_emotion_index = np.argmax(logits)
                 emotion_priority.append(emotion_labels[predicted_emotion_index])
 
+                # Append second maximum value
                 second_max_index = np.argpartition(logits, -2)[-2]
                 emotion_priority.append(emotion_labels[second_max_index])
 
+                # Compare two values and modify the output if maximum value exceeds (second maximum value)*2
                 if ((logits[predicted_emotion_index]*2) > logits[second_max_index]) & (predicted_emotion_index==5):
                     emotion_priority[0] = "행복"
-                # print (logits)
+                
         return emotion_priority[0]
 
 # Send data
 @app.route('/sendBert', methods=['POST'])
 
-# If json data has received make json from data
 def predict_emotion():
-    recieved_data = request.get_json()
-    sentence = recieved_data
-    predicted_result = predict(sentence)
-    print(predicted_result)
-    return jsonify({'diaryContent':predicted_result})
+    try:
+        # Extract data from the request body
+        sentence = request.get_json()
 
-    # If you want to whole infomation
-    # return jsonify({'created_at': recieved_data['created_at'],
-    #                 'emotion_classification': predicted_result,
-    #                 'user_email': recieved_data['user_email']})
-
-
-# # If you have to send json data
-# def send_data(predicted_result):
-#     data = {'predicted_result': predicted_result}
-#     response = requests.post('http://10.0.2.2:8100/', json=data)
-#     if response.status_code == 200:
-#         print('Data sent successfully')
-#     else:
-#         print('Failed to send data:', response.status_code)
-
-
-# # mariadb code - if you have to...
-# # Save data to MariaDB
-# def save_to_database(predicted_result):
-#     try:
-#         # Connect to MariaDB
-#         conn = mariadb.connect(
-#             user="mcc1234",
-#             password="1234mcc",
-#             host="project-db-campus.smhrd.com",
-#             port=3308,
-#             database="tb_feedback"
-#         )
-#         cur = conn.cursor()
-#         cur.execute("INSERT INTO emotion_classification (result) VALUES (?)", (predicted_result,))
-#         conn.commit()
-#         print('Data saved to MariaDB successfully')
-        
-#     except mariadb.Error as e:
-#         print(f"Error connecting to MariaDB: {e}")
-#         sys.exit(1)
-        
-#     finally:
-#         # Close the database connection
-#         if conn:
-#             conn.close()
-
-# # Modify the send_data function to also save the predicted result to MariaDB
-# def send_data(predicted_result):
-#     # Send the predicted result back to the Flask app
-#     data = {'emotion_classification': predicted_result}
-#     response = requests.post('http://10.0.2.2:8100/', json=data)
-#     if response.status_code == 200:
-#         print('Data sent successfully to app')
-#     else:
-#         print('Failed to send data to app:', response.status_code)
-    
-#     # Save the predicted result to MariaDB
-#     save_to_database(predicted_result)
+        # Check if data is not empty
+        if sentence:
+            # Perform prediction on the received sentence
+            predicted_result = predict(sentence)
+            print(predicted_result)
+            
+            # Return the predicted result as JSON response
+            return jsonify(predicted_result)
+        else:
+            return jsonify('error : No diary content provided'), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Define HOST
 if __name__ == '__main__':

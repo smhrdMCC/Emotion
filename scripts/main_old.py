@@ -125,8 +125,9 @@ def predict(predict_sentence):
 # If json data has received make json from data
 def predict_emotion():
     request_data = request.get_json()
-    sentence = request_data['sentence']
+    sentence = request_data['diaryContent']
     predicted_result = predict(sentence)
+    print(predicted_result)
     return jsonify({'predicted_result': predicted_result})
 
 # Send json data

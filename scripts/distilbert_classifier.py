@@ -19,7 +19,7 @@ from transformers import BertModel, DistilBertModel
 max_len = 64
 batch_size = 64
 warmup_ratio = 0.1
-num_epochs = 20
+num_epochs = 1
 max_grad_norm = 1
 log_interval = 200
 learning_rate =  4e-5
