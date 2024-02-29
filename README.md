@@ -15,8 +15,6 @@ KoBERT - DistilBERT based python model
 - Model 다운로드
 ./asset/saved_model.pt : 
 
-    https://drive.google.com/file/d/1a9U0X63b8BSlnrYnYtgaVLVtRvgayDdJ/view?usp=sharing
-
 (test model acc 0.7038596524997434, test model loss 0.6935189366340637)
 
 1. 정확도를 희생해서라도 빠른 반응성과 유지비 절감을 위해 BERT 모델 대신 DistilBERT 모델 사용
