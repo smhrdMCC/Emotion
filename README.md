@@ -13,7 +13,6 @@ KoBERT - DistilBERT based python model
     pip install --no-deps git+https://git@github.com/SKTBrain/KoBERT.git@master
 
 - Model 다운로드
-./asset/saved_model.pt : 
 
 (test model acc 0.7038596524997434, test model loss 0.6935189366340637)
 

@@ -56,6 +56,7 @@ for q, label in zip(processed_data['발화'], processed_data['감정'])  :
 
 # Split the data
 dataset_train, dataset_test = train_test_split(data_list, test_size=0.25)
+dataset_train, dataset_val = train_test_split(dataset_train, test_size=0.1)
 
 class BERTDataset(Dataset):
     def __init__(self, dataset, sent_idx, label_idx, bert_tokenizer, max_len,
@@ -78,9 +79,12 @@ tokenizer = get_tokenizer()
 tok = nlp.data.BERTSPTokenizer(tokenizer, vocab, lower=False)
 data_train = BERTDataset(dataset_train, 0, 1, tok, max_len, True, False)
 data_test = BERTDataset(dataset_test, 0, 1, tok, max_len, True, False)
+data_val = BERTDataset(dataset_val, 0, 1, tok, max_len, True, False)
 
 train_dataloader = torch.utils.data.DataLoader(data_train, batch_size=batch_size, num_workers=0)
 test_dataloader = torch.utils.data.DataLoader(data_test, batch_size=batch_size, num_workers=0)
+val_dataloader = torch.utils.data.DataLoader(data_val, batch_size=batch_size, num_workers=0)
+
 
 # Create KoBERT model
 class BERTClassifier(nn.Module):
@@ -159,7 +163,9 @@ best_loss=99999999
 for e in range(num_epochs):
     train_acc = 0.0
     test_acc = 0.0
+    val_acc = 0.0
     model.train()
+
     for batch_id, (token_ids, valid_length,segment_ids,label) in enumerate(train_dataloader):
         optimizer.zero_grad()
         token_ids = token_ids.long().to(device)
@@ -193,6 +199,20 @@ for e in range(num_epochs):
         test_acc += calc_accuracy(out, label)
     print("epoch {} test acc {} test loss {}".format(e+1, test_acc / (batch_id+1),test_loss.data.cpu().numpy()))
 
+    for batch_id, (token_ids, valid_length, segment_ids, label) in enumerate(val_dataloader):
+        token_ids = token_ids.long().to(device)
+        # DistillBERT don't use token_type_ids(segment_ids)
+        # If it uses BERT model, use this:
+        # segment_ids = segment_ids.long().to(device)
+        valid_length= valid_length
+        label = label.long().to(device)
+        with torch.no_grad():
+          out = model(token_ids, valid_length)
+        val_loss=loss_fn(out,label)
+        val_acc += calc_accuracy(out, label)
+    avg_val_acc = val_acc / len(val_dataloader)
+    print("epoch {} val acc {}".format(e+1, avg_val_acc))
+
     if test_acc>best_acc and test_loss.data.cpu().numpy()<best_loss:
       torch.save({'epoch':e+1,
                   'model_state_dict':model.state_dict(),
@@ -205,4 +225,4 @@ for e in range(num_epochs):
       best_loss=test_loss.data.cpu().numpy()
       bset_acc=test_acc
       
-      print('current best model saved')
+      print('current best model saved. validation acc is : ', val_acc)
